@@ -1,0 +1,121 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useStopwatch } from 'react-timer-hook';
+import { useSpeechSynthesis } from 'react-speech-kit';
+
+import './App.css';
+
+const App = () => {
+  const [timers, setTimers] = useState([
+    { time: 2, text: 'anaya' },
+    { time: 5, text: 'kavya' },
+    { time: 8, text: 'dhruhi' },
+  ]);
+
+  const { seconds, isRunning, start, reset } = useStopwatch();
+  const { speak, speaking, supported } = useSpeechSynthesis();
+
+  const doReset = useCallback(() => reset(), []);
+  const doSpeak = useCallback((...p) => speak(...p), []);
+  useEffect(() => {
+    const foundTimer = timers.find((timer) => {
+      return timer.time === seconds;
+    });
+
+    if (foundTimer) {
+      // will speak the text
+      doSpeak({ text: foundTimer.text });
+    }
+
+    // check seconds > the last timers time
+    if (seconds > timers[timers.length - 1].time) {
+      doReset();
+    }
+  }, [seconds, timers, doReset, doSpeak]);
+
+  const updateTimers = (index, time, text) => {
+    const newTimers = [...timers];
+    newTimers[index].time = time;
+    newTimers[index].text = text;
+
+    setTimers(newTimers);
+  };
+
+  const addTimer = () => {
+    const newTimers = [...timers, { time: 100, text: 'hello boss' }];
+    setTimers(newTimers);
+  };
+
+  if (!supported) {
+    return <div> Your browser is not supported. Sorry !</div>;
+  }
+
+  return (
+    <div className='app'>
+      <h2>Talk the Talk</h2>
+
+      <div className='timers'>
+        {/* timers go here */}
+        {timers.map((timer, index) => (
+          <TimerSlot
+            key={index}
+            index={index}
+            timer={timer}
+            updateTimers={updateTimers}
+          />
+        ))}
+
+        <button className='add-button' onClick={addTimer}>
+          Add
+        </button>
+      </div>
+
+      {/* seconds */}
+      <h2>{seconds}</h2>
+
+      {/* buttons */}
+      <div className='buttons'>
+        {!isRunning && (
+          <button className='start-button' onClick={start}>
+            Start
+          </button>
+        )}
+
+        {isRunning && (
+          <button className='stop-button' onClick={reset}>
+            Stop
+          </button>
+        )}
+
+        {speaking && <p>I am speaking...</p>}
+      </div>
+    </div>
+  );
+};
+
+const TimerSlot = ({ index, timer, updateTimers }) => {
+  const [time, setTime] = useState(timer.time);
+  const [text, setText] = useState(timer.text);
+
+  const blurHandler = () => {
+    updateTimers(index, time, text);
+  };
+
+  return (
+    <form className='timer' key={index}>
+      <input
+        type='number'
+        value={time}
+        onChange={(e) => setTime(+e.target.value)}
+        onBlur={blurHandler}
+      />
+      <input
+        type='text'
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={blurHandler}
+      />
+    </form>
+  );
+};
+
+export default App;
